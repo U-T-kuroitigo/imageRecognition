@@ -5,7 +5,7 @@ from fastapi import FastAPI,File,UploadFile
 import shutil
 from PIL import Image
 import pyocr
-
+from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
@@ -18,13 +18,12 @@ async def create_file(file: bytes = File(...)):
     return {"file_size": len(file)}
 
 
-@app.post("/uploadfile/")
+@app.post("/uploadfile/", response_class=HTMLResponse)
 async def create_upload_file(file: UploadFile):
     with open('files/save.png', 'w+b') as buffer:
         shutil.copyfileobj(file.file, buffer)
             
     builder = pyocr.builders.TextBuilder(tesseract_layout=6)
-    img = Image.open('files/save.png')
     
         # OCRエンジンを取得
     engines = pyocr.get_available_tools()
@@ -33,7 +32,7 @@ async def create_upload_file(file: UploadFile):
     # langs = engine.get_available_languages()
     # print("対応言語:",langs) # ['eng', 'jpn', 'osd']
     
-    
+    img = Image.open('files/save.png')
     
     #画像を読みやすいように加工。
     img = img.convert('RGB')
@@ -52,7 +51,8 @@ async def create_upload_file(file: UploadFile):
                 b = 255
             img2.putpixel((x,y),(r,g,b))
     
-  # 画像の文字を読み込む
+    img2.save('files/save.png')
+    # 画像の文字を読み込む
     txt = engine.image_to_string(img2, lang="jpn",builder = builder)
     print(txt)
-    return {txt}
+    return ("<p style=\"white-space: pre-line\">" + txt + "</p>")
